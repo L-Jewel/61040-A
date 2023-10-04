@@ -90,6 +90,9 @@ class Routes {
     return Post.delete(_id);
   }
 
+  @Router.get("/posts/:id/tags")
+  async getPostTags(_id: ObjectId) {}
+
   @Router.get("/friends")
   async getFriends(session: WebSessionDoc) {
     const user = WebSession.getUser(session);
@@ -136,6 +139,48 @@ class Routes {
     const fromId = (await User.getUserByUsername(from))._id;
     return await Friend.rejectRequest(fromId, user);
   }
+
+  @Router.post("/tags/:tag/:_id")
+  async tagPost(session: WebSessionDoc, tag: string, _id: ObjectId) {}
+
+  @Router.delete("/tags/:tag/:_id")
+  async removeTag(session: WebSessionDoc, tag: string, _id: ObjectId) {}
+
+  @Router.get("/tags/:tag")
+  async getTaggedPosts(tag: string) {}
+
+  @Router.get("/watch")
+  async getWatchlist(session: WebSessionDoc) {}
+
+  @Router.post("/watch/:_id")
+  async watchUser(session: WebSessionDoc, _id: ObjectId) {}
+
+  @Router.delete("/watch/:_id")
+  async stopWatchingUser(session: WebSessionDoc, _id: ObjectId) {}
+
+  @Router.get("/limits")
+  async getUserLimits(session: WebSessionDoc) {}
+
+  @Router.post("/limit/:t1/:t2")
+  async createLimit(session: WebSessionDoc, t1: string, t2: string) {}
+
+  @Router.patch("/limit/:_id")
+  async updateLimit(session: WebSessionDoc, _id: ObjectId) {}
+
+  @Router.delete("/limit/:_id")
+  async deleteLimit(session: WebSessionDoc, _id: ObjectId) {}
+
+  @Router.post("/screenTime/startTime")
+  async startScreenTime(session: WebSessionDoc) {}
+
+  @Router.post("/screenTime/stopTime")
+  async stopScreenTime(session: WebSessionDoc) {}
+
+  @Router.get("/screenTime/lastLogin")
+  async getLastLogin(session: WebSessionDoc) {}
+
+  @Router.get("/screenTime/data/:t")
+  async retrieveUserData(session: WebSessionDoc, t: Date) {}
 }
 
 export default getExpressRouter(new Routes());
