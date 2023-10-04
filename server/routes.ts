@@ -90,6 +90,7 @@ class Routes {
     return Post.delete(_id);
   }
 
+  // Retrieves the tags of the post with ID _id
   @Router.get("/posts/:id/tags")
   async getPostTags(_id: ObjectId) {}
 
@@ -140,45 +141,60 @@ class Routes {
     return await Friend.rejectRequest(fromId, user);
   }
 
+  // Tags the post (_id) with a tag (tag)
   @Router.post("/tags/:tag/:_id")
   async tagPost(session: WebSessionDoc, tag: string, _id: ObjectId) {}
 
+  // Removes the tag (tag) from the post (_id)
   @Router.delete("/tags/:tag/:_id")
   async removeTag(session: WebSessionDoc, tag: string, _id: ObjectId) {}
 
+  // Gets all posts that have the tag (tag)
   @Router.get("/tags/:tag")
   async getTaggedPosts(tag: string) {}
 
+  // Get the list of all accounts that the current user is watching
   @Router.get("/watch")
   async getWatchlist(session: WebSessionDoc) {}
 
+  // Watch account (_id)
   @Router.post("/watch/:_id")
   async watchUser(session: WebSessionDoc, _id: ObjectId) {}
 
+  // Stop watching account (_id)
   @Router.delete("/watch/:_id")
   async stopWatchingUser(session: WebSessionDoc, _id: ObjectId) {}
 
+  // Get all of the user's limits
   @Router.get("/limits")
   async getUserLimits(session: WebSessionDoc) {}
 
+  // Set a limit from time (t1) to time (t2)
   @Router.post("/limit/:t1/:t2")
   async createLimit(session: WebSessionDoc, t1: string, t2: string) {}
 
+  // Update the limit with ID (_id)
   @Router.patch("/limit/:_id")
   async updateLimit(session: WebSessionDoc, _id: ObjectId) {}
 
+  // Delete the limit with ID (_id)
   @Router.delete("/limit/:_id")
   async deleteLimit(session: WebSessionDoc, _id: ObjectId) {}
 
+  // Start counting screen time
   @Router.post("/screenTime/startTime")
   async startScreenTime(session: WebSessionDoc) {}
 
+  // Stop counting screen time
   @Router.post("/screenTime/stopTime")
   async stopScreenTime(session: WebSessionDoc) {}
 
+  // Get the last time that the user logged in
   @Router.get("/screenTime/lastLogin")
   async getLastLogin(session: WebSessionDoc) {}
 
+  // retrieve the screen time data for the user from time (t) to now
+  // if time t is not specified, get all user data
   @Router.get("/screenTime/data/:t")
   async retrieveUserData(session: WebSessionDoc, t: Date) {}
 }
