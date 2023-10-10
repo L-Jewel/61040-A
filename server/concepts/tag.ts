@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import DocCollection, { BaseDoc } from "../framework/doc";
-import { NotAllowedError, NotFoundError } from "./errors";
+import { BadValuesError, NotAllowedError, NotFoundError } from "./errors";
 
 export interface TagDoc extends BaseDoc {
   item: ObjectId;
@@ -11,12 +11,18 @@ export default class TagConcept {
   public readonly tags = new DocCollection<TagDoc>("tags");
 
   async addTag(item: ObjectId, tag: string) {
-    // If the tag already exists, don't make another one.
-    if (await this.itemHasTag(item, tag)) {
-      throw new TagAlreadyExistsError(tag);
+    if (tag && item) {
+      if (this.isInvalidTag(tag)) {
+        throw new BadValuesError("Tags cannot contain whitespace.");
+      }
+      // If the tag already exists, don't make another one.
+      if (await this.itemHasTag(item, tag)) {
+        throw new TagAlreadyExistsError(tag);
+      }
+      void this.tags.createOne({ item, tag });
+      return { msg: `Added tag #${tag} to item!` };
     }
-    void this.tags.createOne({ item, tag });
-    return { msg: `Added tag #${tag} to item!` };
+    throw new BadValuesError("This action requires a Post and a Tag");
   }
 
   async removeTag(item: ObjectId, tag: string) {
@@ -37,6 +43,10 @@ export default class TagConcept {
   async getItemsByTag(tag: string) {
     const taggedItems = await this.tags.readMany({ tag });
     return taggedItems.map((taggedItem) => taggedItem.item);
+  }
+
+  private isInvalidTag(tag: string): boolean {
+    return /\s/.test(tag);
   }
 
   private async itemHasTag(item: ObjectId, tag: string): Promise<boolean> {

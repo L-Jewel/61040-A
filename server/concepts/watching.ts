@@ -11,8 +11,11 @@ export default class WatchingConcept {
   public readonly watching = new DocCollection<WatchingDoc>("watching");
 
   async watch(watcher: ObjectId, watched: ObjectId) {
+    console.log(watcher, watched);
     if (await this.isWatching(watcher, watched)) {
       throw new AlreadyWatchingError(watcher, watched);
+    } else if (watcher.equals(watched)) {
+      throw new NotAllowedError("You cannot watch yourself!");
     }
     await this.watching.createOne({ watcher, watched });
     return { msg: `${watcher} is now watching ${watched}` };

@@ -55,7 +55,7 @@ const operations: operation[] = [
   },
   {
     name: "Get Users by Query",
-    endpoint: "/api/search/users/:searchQuery",
+    endpoint: "/api/users/search/:searchQuery",
     method: "GET",
     fields: { searchQuery: "input" },
   },
@@ -64,6 +64,12 @@ const operations: operation[] = [
     endpoint: "/api/posts",
     method: "GET",
     fields: { author: "input" },
+  },
+  {
+    name: "Get Post's Tags",
+    endpoint: "/api/posts/:id/tags",
+    method: "GET",
+    fields: { id: "input" },
   },
   {
     name: "Create Post",
@@ -82,6 +88,42 @@ const operations: operation[] = [
     endpoint: "/api/posts/:id",
     method: "DELETE",
     fields: { id: "input" },
+  },
+  {
+    name: "Tag Post",
+    endpoint: "/api/tags",
+    method: "POST",
+    fields: { _id: "input", tag: "input" },
+  },
+  {
+    name: "Remove Tag from Post",
+    endpoint: "/api/tags/:tag/:_id",
+    method: "DELETE",
+    fields: { tag: "input", _id: "input" },
+  },
+  {
+    name: "Get Posts with Tag",
+    endpoint: "/api/tags/:tag",
+    method: "GET",
+    fields: { tag: "input" },
+  },
+  {
+    name: "Get Watchlist",
+    endpoint: "/api/watch",
+    method: "GET",
+    fields: {},
+  },
+  {
+    name: "Watch User",
+    endpoint: "/api/watch",
+    method: "POST",
+    fields: { watched_id: "input" },
+  },
+  {
+    name: "Stop Watching User",
+    endpoint: "/api/watch/:watched",
+    method: "DELETE",
+    fields: { watched: "input" },
   },
 ];
 
