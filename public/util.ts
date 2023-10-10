@@ -54,6 +54,12 @@ const operations: operation[] = [
     fields: { username: "input" },
   },
   {
+    name: "Get Users by Query",
+    endpoint: "/api/search/users/:searchQuery",
+    method: "GET",
+    fields: { searchQuery: "input" },
+  },
+  {
     name: "Get Posts (empty for all)",
     endpoint: "/api/posts",
     method: "GET",

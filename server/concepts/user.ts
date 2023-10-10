@@ -46,9 +46,14 @@ export default class UserConcept {
     return ids.map((id) => idToUser.get(id.toString())?.username ?? "DELETED_USER");
   }
 
+  /**
+   * Search the set of users.
+   * @param username an optional search query
+   * @returns if the `username` param is not provided, a list of all users. otherwise,
+   *          a list of users that satisfies the following regex pattern: ^`username`.
+   */
   async getUsers(username?: string) {
-    // If username is undefined, return all users by applying empty filter
-    const filter = username ? { username } : {};
+    const filter = username ? { username: { $regex: `^${username}` } } : {};
     const users = (await this.users.readMany(filter)).map(this.sanitizeUser);
     return users;
   }

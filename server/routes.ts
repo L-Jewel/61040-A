@@ -9,6 +9,8 @@ import { WebSessionDoc } from "./concepts/websession";
 import Responses from "./responses";
 
 class Routes {
+  // User + Authentication Methods
+
   @Router.get("/session")
   async getSessionUser(session: WebSessionDoc) {
     const user = WebSession.getUser(session);
@@ -57,6 +59,8 @@ class Routes {
     return { msg: "Logged out!" };
   }
 
+  // Posts Methods
+
   @Router.get("/posts")
   async getPosts(author?: string) {
     let posts;
@@ -93,6 +97,15 @@ class Routes {
   // Retrieves the tags of the post with ID _id
   @Router.get("/posts/:id/tags")
   async getPostTags(_id: ObjectId) {}
+
+  // Search GET Methods
+
+  @Router.get("/search/users/:searchQuery")
+  async searchUsers(searchQuery: string) {
+    return await User.getUsers(searchQuery);
+  }
+
+  // Friend methods
 
   @Router.get("/friends")
   async getFriends(session: WebSessionDoc) {
