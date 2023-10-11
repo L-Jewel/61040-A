@@ -2,7 +2,8 @@ import { ObjectId } from "mongodb";
 
 import { Router, getExpressRouter } from "./framework/router";
 
-import { Post, Tag, User, Watching, WebSession } from "./app";
+import { Limit, Post, ScreenTime, Tag, User, Watching, WebSession } from "./app";
+import { LimitDoc, UserLimitedError } from "./concepts/limit";
 import { PostDoc, PostOptions } from "./concepts/post";
 import { UserDoc } from "./concepts/user";
 import { WebSessionDoc } from "./concepts/websession";
@@ -39,19 +40,25 @@ class Routes {
     WebSession.end(session);
     return await User.delete(user);
   }
-  @Router.get("/users/search/:searchQuery")
+  @Router.get("/search/users/:searchQuery")
   async searchUsers(searchQuery: string) {
     return await User.getUsers(searchQuery);
   }
   @Router.post("/login")
   async logIn(session: WebSessionDoc, username: string, password: string) {
+    // Login
     const u = await User.authenticate(username, password);
     WebSession.start(session, u._id);
+    // Start accumulating screen time
+    await ScreenTime.startTime(u._id);
     return { msg: "Logged in!" };
   }
   @Router.post("/logout")
   async logOut(session: WebSessionDoc) {
+    const user = WebSession.getUser(session);
     WebSession.end(session);
+    await ScreenTime.stopTime(user);
+    await Limit.endOverride(user);
     return { msg: "Logged out!" };
   }
 
@@ -68,50 +75,75 @@ class Routes {
     return Responses.posts(posts);
   }
   @Router.post("/posts")
-  async createTaggedPost(session: WebSessionDoc, content: string, options?: PostOptions) {
-    // console.log(content, tags);
-    // // Create Post
+  async createTaggedPost(session: WebSessionDoc, content: string, tags: string[], options?: PostOptions) {
+    // Check if the user is Limited
     const user = WebSession.getUser(session);
+    if (await Limit.isUserLimited(user)) {
+      throw new UserLimitedError(user);
+    }
+    // Create Post
     const created = await Post.create(user, content, options);
-    // // Tag said Post
-    // if (created.post) {
-    //   for (const tag of tags) {
-    //     console.log(tag);
-    //     await Tag.addTag(created.post._id, tag);
-    //   }
-    // }
+    // Tag said Post
+    if (created.post) {
+      for (const tag of tags) {
+        await Tag.addTag(created.post._id, tag);
+      }
+    }
     return { msg: created.msg, post: await Responses.post(created.post) };
   }
   @Router.patch("/posts/:_id")
   async updatePost(session: WebSessionDoc, _id: ObjectId, update: Partial<PostDoc>) {
+    // Check if the user is Limited
     const user = WebSession.getUser(session);
+    if (await Limit.isUserLimited(user)) {
+      throw new UserLimitedError(user);
+    }
     await Post.isAuthor(user, _id);
     return await Post.update(_id, update);
   }
   @Router.delete("/posts/:_id")
   async deletePost(session: WebSessionDoc, _id: ObjectId) {
+    // Check if the user is Limited
     const user = WebSession.getUser(session);
+    if (await Limit.isUserLimited(user)) {
+      throw new UserLimitedError(user);
+    }
+    // Verify that the user authored this post
     await Post.isAuthor(user, _id);
+    // Delete the tags associated with this post
+    const tags = await Tag.getItemTags(new ObjectId(_id));
+    for (const tag of tags) {
+      await Tag.removeTag(new ObjectId(_id), tag);
+    }
+    // Delete the posts themselves
     return Post.delete(_id);
   }
   @Router.get("/posts/:_id/tags")
   async getPostTags(_id: ObjectId) {
-    return await Tag.getItemTags(_id);
+    return await Tag.getItemTags(new ObjectId(_id));
   }
 
   // Tag Methods
   @Router.post("/tags")
   async tagPost(session: WebSessionDoc, tag: string, _id: ObjectId) {
-    // Verify that the user created said post
+    // Check if the user is Limited
     const user = WebSession.getUser(session);
+    if (await Limit.isUserLimited(user)) {
+      throw new UserLimitedError(user);
+    }
+    // Verify that the user created said post
     await Post.isAuthor(user, _id);
     // Tag post
     return await Tag.addTag(_id, tag);
   }
   @Router.delete("/tags/:tag/:_id")
   async removeTag(session: WebSessionDoc, tag: string, _id: ObjectId) {
-    // Verify that the user created said post
+    // Check if the user is Limited
     const user = WebSession.getUser(session);
+    if (await Limit.isUserLimited(user)) {
+      throw new UserLimitedError(user);
+    }
+    // Verify that the user created said post
     await Post.isAuthor(user, _id);
     // Remove tag
     return await Tag.removeTag(_id, tag);
@@ -124,52 +156,93 @@ class Routes {
   // Watching Methods
   @Router.get("/watch")
   async getWatchlist(session: WebSessionDoc) {
+    // Check if the user is Limited
     const user = WebSession.getUser(session);
+    if (await Limit.isUserLimited(user)) {
+      throw new UserLimitedError(user);
+    }
     return await Watching.getWatched(user);
   }
   @Router.post("/watch")
   async watchUser(session: WebSessionDoc, watched_id: ObjectId) {
+    // Check if the user is Limited
     const watcher = WebSession.getUser(session);
+    if (await Limit.isUserLimited(watcher)) {
+      throw new UserLimitedError(watcher);
+    }
     return await Watching.watch(watcher, watched_id);
   }
   @Router.delete("/watch/:watched")
   async stopWatchingUser(session: WebSessionDoc, watched: ObjectId) {
+    // Check if the user is Limited
     const watcher = WebSession.getUser(session);
+    if (await Limit.isUserLimited(watcher)) {
+      throw new UserLimitedError(watcher);
+    }
     return await Watching.stopWatching(watcher, watched);
   }
 
-  // Get all of the user's limits
+  // Limit Methods
   @Router.get("/limits")
-  async getUserLimits(session: WebSessionDoc) {}
+  async getUserLimits(session: WebSessionDoc) {
+    const user = WebSession.getUser(session);
+    return await Limit.getLimits(user);
+  }
+  @Router.post("/limits")
+  async createLimit(session: WebSessionDoc, hourStart: number, minuteStart: number, hourEnd: number, minuteEnd: number) {
+    const user = WebSession.getUser(session);
+    console.log(hourStart, minuteStart, hourEnd, minuteEnd);
+    return Limit.add(user, hourStart, minuteStart, hourEnd, minuteEnd);
+  }
+  @Router.patch("/limits/:_id")
+  async updateLimit(session: WebSessionDoc, _id: ObjectId, update: Partial<LimitDoc>) {
+    const user = WebSession.getUser(session);
+    await Limit.isCreator(user, _id);
+    return Limit.update(_id, update);
+  }
+  @Router.delete("/limits/:_id")
+  async deleteLimit(session: WebSessionDoc, _id: ObjectId) {
+    const user = WebSession.getUser(session);
+    await Limit.isCreator(user, _id);
+    return Limit.remove(_id);
+  }
+  @Router.get("/limits/next")
+  async nextQuietHour(session: WebSessionDoc) {
+    const user = WebSession.getUser(session);
+    return Limit.getNextLimitStart(user);
+  }
+  @Router.post("/limits/override")
+  async overrideLimit(session: WebSessionDoc) {
+    const user = WebSession.getUser(session);
+    return Limit.override(user);
+  }
+  @Router.get("/limits/isLimited")
+  async isUserLimited(session: WebSessionDoc) {
+    const user = WebSession.getUser(session);
+    return Limit.isUserLimited(user);
+  }
 
-  // Set a limit from time (t1) to time (t2)
-  @Router.post("/limit/:t1/:t2")
-  async createLimit(session: WebSessionDoc, t1: string, t2: string) {}
-
-  // Update the limit with ID (_id)
-  @Router.patch("/limit/:_id")
-  async updateLimit(session: WebSessionDoc, _id: ObjectId) {}
-
-  // Delete the limit with ID (_id)
-  @Router.delete("/limit/:_id")
-  async deleteLimit(session: WebSessionDoc, _id: ObjectId) {}
-
-  // Start counting screen time
+  // Screen Time Methods
   @Router.post("/screenTime/startTime")
-  async startScreenTime(session: WebSessionDoc) {}
-
-  // Stop counting screen time
+  async startScreenTime(session: WebSessionDoc) {
+    const user = WebSession.getUser(session);
+    return ScreenTime.startTime(user);
+  }
   @Router.post("/screenTime/stopTime")
-  async stopScreenTime(session: WebSessionDoc) {}
-
-  // Get the last time that the user logged in
+  async stopScreenTime(session: WebSessionDoc) {
+    const user = WebSession.getUser(session);
+    return ScreenTime.stopTime(user);
+  }
   @Router.get("/screenTime/lastLogin")
-  async getLastLogin(session: WebSessionDoc) {}
-
-  // retrieve the screen time data for the user from time (t) to now
-  // if time t is not specified, get all user data
-  @Router.get("/screenTime/data/:t")
-  async retrieveUserData(session: WebSessionDoc, t: Date) {}
+  async getLastLogin(session: WebSessionDoc) {
+    const user = WebSession.getUser(session);
+    return ScreenTime.getLastStart(user);
+  }
+  @Router.get("/screenTime/data")
+  async retrieveUserData(session: WebSessionDoc, t?: Date) {
+    const user = WebSession.getUser(session);
+    return ScreenTime.getUserData(user, t);
+  }
 }
 
 export default getExpressRouter(new Routes());

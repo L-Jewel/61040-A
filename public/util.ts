@@ -55,7 +55,7 @@ const operations: operation[] = [
   },
   {
     name: "Get Users by Query",
-    endpoint: "/api/users/search/:searchQuery",
+    endpoint: "/api/search/users/:searchQuery",
     method: "GET",
     fields: { searchQuery: "input" },
   },
@@ -72,10 +72,10 @@ const operations: operation[] = [
     fields: { id: "input" },
   },
   {
-    name: "Create Post",
+    name: "Create Tagged Post",
     endpoint: "/api/posts",
     method: "POST",
-    fields: { content: "input" },
+    fields: { content: "input", tags: "json" },
   },
   {
     name: "Update Post",
@@ -124,6 +124,72 @@ const operations: operation[] = [
     endpoint: "/api/watch/:watched",
     method: "DELETE",
     fields: { watched: "input" },
+  },
+  {
+    name: "Get User Limits",
+    endpoint: "/api/limits",
+    method: "GET",
+    fields: {},
+  },
+  {
+    name: "Create Limit",
+    endpoint: "/api/limits",
+    method: "POST",
+    fields: { hourStart: "json", minuteStart: "json", hourEnd: "json", minuteEnd: "json" },
+  },
+  {
+    name: "Remove Limit",
+    endpoint: "/api/limits/:id",
+    method: "DELETE",
+    fields: { id: "input" },
+  },
+  {
+    name: "Update Limit",
+    endpoint: "/api/limits/:id",
+    method: "PATCH",
+    fields: { id: "input", update: { hourStart: "json", minuteStart: "json", hourEnd: "json", minuteEnd: "json" } },
+  },
+  {
+    name: "Get Next Limit Start",
+    endpoint: "/api/limits/next",
+    method: "GET",
+    fields: {},
+  },
+  {
+    name: "Is User Limited?",
+    endpoint: "/api/limits/isLimited",
+    method: "GET",
+    fields: {},
+  },
+  {
+    name: "Override Limit",
+    endpoint: "/api/limits/override",
+    method: "POST",
+    fields: {},
+  },
+  {
+    name: "Start Screen Time",
+    endpoint: "/api/screenTime/startTime",
+    method: "POST",
+    fields: {},
+  },
+  {
+    name: "Stop Screen Time",
+    endpoint: "/api/screenTime/stopTime",
+    method: "POST",
+    fields: {},
+  },
+  {
+    name: "Get Last Login",
+    endpoint: "/api/screenTime/lastLogin",
+    method: "GET",
+    fields: {},
+  },
+  {
+    name: "Retrieve User Data",
+    endpoint: "/api/screenTime/data/:date",
+    method: "GET",
+    fields: { date: "json" },
   },
 ];
 
@@ -214,6 +280,7 @@ function prefixedRecordIntoObject(record: Record<string, string>) {
 
 async function submitEventHandler(e: Event) {
   e.preventDefault();
+  console.log(e);
   const form = e.target as HTMLFormElement;
   const { $method, $endpoint, ...reqData } = Object.fromEntries(new FormData(form));
 
