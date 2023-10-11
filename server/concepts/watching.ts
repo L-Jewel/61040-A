@@ -28,7 +28,7 @@ export default class WatchingConcept {
     return { msg: `${watcher} is no longer watching ${watched}` };
   }
 
-  async getWatched(watcher: ObjectId) {
+  async getWatchlist(watcher: ObjectId) {
     const allWatched = await this.watching.readMany({ watcher });
     return allWatched.map((watching) => watching.watched);
   }

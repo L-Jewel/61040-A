@@ -156,12 +156,6 @@ const operations: operation[] = [
     fields: {},
   },
   {
-    name: "Is User Limited?",
-    endpoint: "/api/limits/isLimited",
-    method: "GET",
-    fields: {},
-  },
-  {
     name: "Override Limit",
     endpoint: "/api/limits/override",
     method: "POST",

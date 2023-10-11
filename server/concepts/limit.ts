@@ -116,7 +116,7 @@ export default class LimitConcept {
       }
       return { hour: userLimits[0].hourStart, minute: userLimits[0].minuteStart };
     }
-    return undefined;
+    return { msg: `${user} has no limits` };
   }
 
   async isCreator(user: ObjectId, _id: ObjectId) {

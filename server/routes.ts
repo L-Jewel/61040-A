@@ -38,6 +38,11 @@ class Routes {
   async deleteUser(session: WebSessionDoc) {
     const user = WebSession.getUser(session);
     WebSession.end(session);
+    // Clear watchlist
+    const watchlist = await Watching.getWatchlist(user);
+    for (const watched of watchlist) {
+      await Watching.stopWatching(user, watched);
+    }
     return await User.delete(user);
   }
   @Router.get("/search/users/:searchQuery")
@@ -150,7 +155,7 @@ class Routes {
     // Check if the user is Limited
     const user = WebSession.getUser(session);
     await Limit.isUserLimited(user);
-    return await Watching.getWatched(user);
+    return await Watching.getWatchlist(user);
   }
   @Router.post("/watch")
   async watchUser(session: WebSessionDoc, watched_id: ObjectId) {
@@ -200,12 +205,6 @@ class Routes {
     const user = WebSession.getUser(session);
     return Limit.override(user);
   }
-  @Router.get("/limits/isLimited")
-  async isUserLimited(session: WebSessionDoc) {
-    const user = WebSession.getUser(session);
-    await Limit.isUserLimited(user);
-    return { msg: "User is not limited!" };
-  }
 
   // Screen Time Methods
   @Router.get("/screenTime/lastLogin")
@@ -226,7 +225,7 @@ class Routes {
     const user = WebSession.getUser(session);
     await Limit.isUserLimited(user);
 
-    const watchlist = await Watching.getWatched(user);
+    const watchlist = await Watching.getWatchlist(user);
     const lastLogin = await ScreenTime.getLastStart(user);
     const feed = [];
     for (const watched of watchlist) {
