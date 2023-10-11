@@ -3,7 +3,7 @@ import { ObjectId } from "mongodb";
 import { Router, getExpressRouter } from "./framework/router";
 
 import { Limit, Post, ScreenTime, Tag, User, Watching, WebSession } from "./app";
-import { LimitDoc, UserLimitedError } from "./concepts/limit";
+import { LimitDoc } from "./concepts/limit";
 import { PostDoc, PostOptions } from "./concepts/post";
 import { UserDoc } from "./concepts/user";
 import { WebSessionDoc } from "./concepts/websession";
@@ -78,9 +78,7 @@ class Routes {
   async createTaggedPost(session: WebSessionDoc, content: string, tags: string[], options?: PostOptions) {
     // Check if the user is Limited
     const user = WebSession.getUser(session);
-    if (await Limit.isUserLimited(user)) {
-      throw new UserLimitedError(user);
-    }
+    await Limit.isUserLimited(user);
     // Create Post
     const created = await Post.create(user, content, options);
     // Tag said Post
@@ -95,9 +93,8 @@ class Routes {
   async updatePost(session: WebSessionDoc, _id: ObjectId, update: Partial<PostDoc>) {
     // Check if the user is Limited
     const user = WebSession.getUser(session);
-    if (await Limit.isUserLimited(user)) {
-      throw new UserLimitedError(user);
-    }
+    await Limit.isUserLimited(user);
+
     await Post.isAuthor(user, _id);
     return await Post.update(_id, update);
   }
@@ -105,9 +102,7 @@ class Routes {
   async deletePost(session: WebSessionDoc, _id: ObjectId) {
     // Check if the user is Limited
     const user = WebSession.getUser(session);
-    if (await Limit.isUserLimited(user)) {
-      throw new UserLimitedError(user);
-    }
+    await Limit.isUserLimited(user);
     // Verify that the user authored this post
     await Post.isAuthor(user, _id);
     // Delete the tags associated with this post
@@ -128,9 +123,7 @@ class Routes {
   async tagPost(session: WebSessionDoc, tag: string, _id: ObjectId) {
     // Check if the user is Limited
     const user = WebSession.getUser(session);
-    if (await Limit.isUserLimited(user)) {
-      throw new UserLimitedError(user);
-    }
+    await Limit.isUserLimited(user);
     // Verify that the user created said post
     await Post.isAuthor(user, _id);
     // Tag post
@@ -140,9 +133,7 @@ class Routes {
   async removeTag(session: WebSessionDoc, tag: string, _id: ObjectId) {
     // Check if the user is Limited
     const user = WebSession.getUser(session);
-    if (await Limit.isUserLimited(user)) {
-      throw new UserLimitedError(user);
-    }
+    await Limit.isUserLimited(user);
     // Verify that the user created said post
     await Post.isAuthor(user, _id);
     // Remove tag
@@ -158,27 +149,21 @@ class Routes {
   async getWatchlist(session: WebSessionDoc) {
     // Check if the user is Limited
     const user = WebSession.getUser(session);
-    if (await Limit.isUserLimited(user)) {
-      throw new UserLimitedError(user);
-    }
+    await Limit.isUserLimited(user);
     return await Watching.getWatched(user);
   }
   @Router.post("/watch")
   async watchUser(session: WebSessionDoc, watched_id: ObjectId) {
     // Check if the user is Limited
     const watcher = WebSession.getUser(session);
-    if (await Limit.isUserLimited(watcher)) {
-      throw new UserLimitedError(watcher);
-    }
+    await Limit.isUserLimited(watcher);
     return await Watching.watch(watcher, watched_id);
   }
   @Router.delete("/watch/:watched")
   async stopWatchingUser(session: WebSessionDoc, watched: ObjectId) {
     // Check if the user is Limited
     const watcher = WebSession.getUser(session);
-    if (await Limit.isUserLimited(watcher)) {
-      throw new UserLimitedError(watcher);
-    }
+    await Limit.isUserLimited(watcher);
     return await Watching.stopWatching(watcher, watched);
   }
 
@@ -191,7 +176,6 @@ class Routes {
   @Router.post("/limits")
   async createLimit(session: WebSessionDoc, hourStart: number, minuteStart: number, hourEnd: number, minuteEnd: number) {
     const user = WebSession.getUser(session);
-    console.log(hourStart, minuteStart, hourEnd, minuteEnd);
     return Limit.add(user, hourStart, minuteStart, hourEnd, minuteEnd);
   }
   @Router.patch("/limits/:_id")
@@ -219,20 +203,21 @@ class Routes {
   @Router.get("/limits/isLimited")
   async isUserLimited(session: WebSessionDoc) {
     const user = WebSession.getUser(session);
-    return Limit.isUserLimited(user);
+    await Limit.isUserLimited(user);
+    return { msg: "User is not limited!" };
   }
 
   // Screen Time Methods
-  @Router.post("/screenTime/startTime")
-  async startScreenTime(session: WebSessionDoc) {
-    const user = WebSession.getUser(session);
-    return ScreenTime.startTime(user);
-  }
-  @Router.post("/screenTime/stopTime")
-  async stopScreenTime(session: WebSessionDoc) {
-    const user = WebSession.getUser(session);
-    return ScreenTime.stopTime(user);
-  }
+  // @Router.post("/screenTime/startTime")
+  // async startScreenTime(session: WebSessionDoc) {
+  //   const user = WebSession.getUser(session);
+  //   return ScreenTime.startTime(user);
+  // }
+  // @Router.post("/screenTime/stopTime")
+  // async stopScreenTime(session: WebSessionDoc) {
+  //   const user = WebSession.getUser(session);
+  //   return ScreenTime.stopTime(user);
+  // }
   @Router.get("/screenTime/lastLogin")
   async getLastLogin(session: WebSessionDoc) {
     const user = WebSession.getUser(session);
@@ -242,6 +227,22 @@ class Routes {
   async retrieveUserData(session: WebSessionDoc, t?: Date) {
     const user = WebSession.getUser(session);
     return ScreenTime.getUserData(user, t);
+  }
+
+  // Feed
+  @Router.get("/feed")
+  async getFeed(session: WebSessionDoc) {
+    // Check if the user is Limited
+    const user = WebSession.getUser(session);
+    await Limit.isUserLimited(user);
+
+    const watchlist = await Watching.getWatched(user);
+    const lastLogin = await ScreenTime.getLastStart(user);
+    const feed = [];
+    for (const watched of watchlist) {
+      feed.push(await Post.getByAuthor(watched, lastLogin));
+    }
+    return feed;
   }
 }
 

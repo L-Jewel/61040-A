@@ -191,6 +191,12 @@ const operations: operation[] = [
     method: "GET",
     fields: { date: "json" },
   },
+  {
+    name: "Get User's Feed",
+    endpoint: "/api/feed",
+    method: "GET",
+    fields: {},
+  },
 ];
 
 // Do not edit below here.

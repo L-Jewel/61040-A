@@ -71,7 +71,7 @@ export default class LimitConcept {
     // Check if limits are currently being overriden
     const userOverride = await this.overrides.readOne({ user });
     if (userOverride && userOverride.override) {
-      return false;
+      return;
     }
     // Otherwise, check and see if the current time is in the limits
     const userLimits = await this.getLimits(user);
@@ -81,21 +81,25 @@ export default class LimitConcept {
     for (const userLimit of userLimits) {
       // Check if start time occurs "after" end time
       if (userLimit.hourStart > userLimit.hourEnd || (userLimit.hourStart === userLimit.hourEnd && userLimit.minuteStart > userLimit.minuteEnd)) {
-        return currentHour < userLimit.hourStart || (currentHour === userLimit.hourStart && currentMinute < userLimit.minuteStart);
+        if (currentHour < userLimit.hourStart || (currentHour === userLimit.hourStart && currentMinute < userLimit.minuteStart)) {
+          throw new UserLimitedError(user);
+        }
       }
       if (currentHour >= userLimit.hourStart && currentHour <= userLimit.hourEnd) {
         if (userLimit.hourEnd === userLimit.hourStart) {
-          return currentMinute >= userLimit.minuteStart && currentMinute < userLimit.minuteEnd;
+          if (currentMinute >= userLimit.minuteStart && currentMinute < userLimit.minuteEnd) {
+            throw new UserLimitedError(user);
+          }
         }
         if (currentHour == userLimit.hourStart && currentMinute >= userLimit.minuteStart) {
-          return true;
+          throw new UserLimitedError(user);
         }
         if (currentHour == userLimit.hourEnd && currentMinute < userLimit.minuteEnd) {
-          return true;
+          throw new UserLimitedError(user);
         }
       }
     }
-    return false;
+    return;
   }
 
   async getNextLimitStart(user: ObjectId) {
