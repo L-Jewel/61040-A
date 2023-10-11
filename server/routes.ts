@@ -208,16 +208,6 @@ class Routes {
   }
 
   // Screen Time Methods
-  // @Router.post("/screenTime/startTime")
-  // async startScreenTime(session: WebSessionDoc) {
-  //   const user = WebSession.getUser(session);
-  //   return ScreenTime.startTime(user);
-  // }
-  // @Router.post("/screenTime/stopTime")
-  // async stopScreenTime(session: WebSessionDoc) {
-  //   const user = WebSession.getUser(session);
-  //   return ScreenTime.stopTime(user);
-  // }
   @Router.get("/screenTime/lastLogin")
   async getLastLogin(session: WebSessionDoc) {
     const user = WebSession.getUser(session);
@@ -240,7 +230,7 @@ class Routes {
     const lastLogin = await ScreenTime.getLastStart(user);
     const feed = [];
     for (const watched of watchlist) {
-      feed.push(await Post.getByAuthor(watched, lastLogin));
+      feed.push(await Post.getByAuthor(new ObjectId(watched), lastLogin));
     }
     return feed;
   }

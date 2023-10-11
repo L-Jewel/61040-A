@@ -168,18 +168,6 @@ const operations: operation[] = [
     fields: {},
   },
   {
-    name: "Start Screen Time",
-    endpoint: "/api/screenTime/startTime",
-    method: "POST",
-    fields: {},
-  },
-  {
-    name: "Stop Screen Time",
-    endpoint: "/api/screenTime/stopTime",
-    method: "POST",
-    fields: {},
-  },
-  {
     name: "Get Last Login",
     endpoint: "/api/screenTime/lastLogin",
     method: "GET",
